@@ -2,11 +2,10 @@ package com.adennet.controller;
 
 import com.adennet.dto.ServerDetail;
 import com.adennet.dto.SessionCount;
-import com.adennet.service.GrafanaMongoService;
+import com.adennet.service.MonitoringService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import javax.websocket.server.PathParam;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -14,21 +13,25 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping(("/api"))
 @RequiredArgsConstructor
-public class GrafanaMongoController {
-    private final GrafanaMongoService grafanaMongoService;
+public class MonitoringController {
+    private final MonitoringService monitoringService;
 
     @PostMapping("/diskInfo")
     public List<Map<String, String>> getDiskInfo(@RequestBody Map<String, ServerDetail> serverDetail) {
         return serverDetail.keySet()
                 .stream()
-                .map(server -> grafanaMongoService.diskDetails(server, serverDetail.get(server)))
+                .map(server -> monitoringService.diskDetails(server, serverDetail.get(server)))
                 .collect(Collectors.toList());
     }
 
     @GetMapping("activeSession")
     public SessionCount activeSession(@RequestParam("isValid") boolean isValid) {
-        System.out.println("isValid = " + isValid);
-        return grafanaMongoService.activeSession(isValid);
+        return monitoringService.activeSession(isValid);
+    }
+
+    @GetMapping("consumptionUsages")
+    public void consumptionUsages() {
+         monitoringService.getConsumptionDataFromPostgres();
     }
 
 }

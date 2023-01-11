@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.data.mongodb.MongoDatabaseFactory;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory;
+import org.springframework.util.Base64Utils;
 
 @Configuration
 public class MongoDbClientConfig {
@@ -15,7 +16,7 @@ public class MongoDbClientConfig {
     @Lazy
     public MongoDatabaseFactory radiusDatabaseFactory(@Qualifier("radiusDbProperties") MongoProperties mongoProperties) {
         return new SimpleMongoClientDatabaseFactory(
-                mongoProperties.getUri()
+                new String(Base64Utils.decode(mongoProperties.getUri().getBytes()))
         );
     }
 
@@ -23,7 +24,7 @@ public class MongoDbClientConfig {
     @Lazy
     public MongoDatabaseFactory mediationDatabaseFactory(@Qualifier("mediationProperties") MongoProperties mongoProperties) {
         return new SimpleMongoClientDatabaseFactory(
-                mongoProperties.getUri()
+                new String(Base64Utils.decode(mongoProperties.getUri().getBytes()))
         );
     }
 

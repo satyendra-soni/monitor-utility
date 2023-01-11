@@ -27,16 +27,16 @@ import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 
 @Service
 @Slf4j
-public class GrafanaMongoService {
+public class MonitoringService {
     private final MongoTemplate radiusDbMongoClient;
     private final MongoTemplate mediationDbMongoClient;
     private final JdbcTemplate usageMgmtDbClient;
 
 
     @Autowired
-    public GrafanaMongoService(@Qualifier("radiusDbMongoClient") MongoTemplate radiusDbMongoClient,
-                               @Qualifier("mediationDbMongoClient") MongoTemplate mediationDbMongoClient,
-                               @Qualifier("usageMgmtDbClient") JdbcTemplate usageMgmtDbClient) {
+    public MonitoringService(@Qualifier("radiusDbMongoClient") MongoTemplate radiusDbMongoClient,
+                             @Qualifier("mediationDbMongoClient") MongoTemplate mediationDbMongoClient,
+                             @Qualifier("usageMgmtDbClient") JdbcTemplate usageMgmtDbClient) {
         this.radiusDbMongoClient = radiusDbMongoClient;
         this.mediationDbMongoClient = mediationDbMongoClient;
         this.usageMgmtDbClient = usageMgmtDbClient;
