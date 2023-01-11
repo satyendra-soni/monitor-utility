@@ -16,7 +16,7 @@ public class MongoDbClientConfig {
     @Lazy
     public MongoDatabaseFactory radiusDatabaseFactory(@Qualifier("radiusDbProperties") MongoProperties mongoProperties) {
         return new SimpleMongoClientDatabaseFactory(
-                new String(Base64Utils.decode(mongoProperties.getUri().getBytes()))
+                mongoProperties.getUri()
         );
     }
 
@@ -24,7 +24,7 @@ public class MongoDbClientConfig {
     @Lazy
     public MongoDatabaseFactory mediationDatabaseFactory(@Qualifier("mediationProperties") MongoProperties mongoProperties) {
         return new SimpleMongoClientDatabaseFactory(
-                new String(Base64Utils.decode(mongoProperties.getUri().getBytes()))
+                mongoProperties.getUri()
         );
     }
 
