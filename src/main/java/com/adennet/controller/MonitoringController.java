@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping(("/api"))
+@RequestMapping(("/monitor"))
 @RequiredArgsConstructor
 public class MonitoringController {
     private final MonitoringService monitoringService;

@@ -30,7 +30,7 @@ pipeline {
     }
 
     stages {
-        stage("Push image from Sarath's registry to Adennet registry") {
+        stage("Pull image from Sarath's registry to Adennet registry") {
             steps {
                 script {
                     echo "Login to Sarathi's registry"
