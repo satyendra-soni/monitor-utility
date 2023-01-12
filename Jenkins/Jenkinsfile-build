@@ -20,7 +20,7 @@ pipeline {
         stage('git-clone') {
             steps {
                 // Get some code from a GitHub repository
-                git branch: "${BRANCH_NAME}", url: 'https://github.com/satyendra-soni/monitor-utility.git'
+                git branch: "${BRANCH_NAME}", credentialsId: 'pat-github-adennet', url: 'https://github.com/satyendra-soni/monitor-utility.git'
             }
         }
         stage ('Build') {
