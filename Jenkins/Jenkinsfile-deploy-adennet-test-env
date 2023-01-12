@@ -1,0 +1,139 @@
+pipeline {
+    agent any
+
+    environment {
+        PORT_MAPPING= "8089:8080"
+
+        CONTAINER_NAME = "monitor-utility"
+        REPO_CONTAINER_NAME = "10.6.0.2:8082/monitor-utility"
+        IMAGE_TAG = "192.168.1.119:8082/monitor-utility:${params.IMAGE_TAG}"
+        RE_TAG = "${REPO_CONTAINER_NAME}:${params.IMAGE_TAG}"
+        
+        /*LOG_FOLDER= "logs"
+        LOG_FILENAME= "customer-portal"
+        MOUNT_LOG_LOCATION= "/home/jbilling/billinghub/logs/customer-portal:/app/${LOG_FOLDER}" */
+
+        DOCKER_REG_HOST= "http://10.6.0.2:8082"
+        CRED_DOCKER_REG= credentials('docker-registry')
+        DOCKER_USERNAME= "$CRED_DOCKER_REG_USR"
+        DOCKER_PASSWORD= "$CRED_DOCKER_REG_PSW"
+
+        SPRING_AUTOCONFIGURE_EXCLUDE="org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration"
+        TEST_MONGODB_MEDIATION_URI="mongodb://10.6.0.2:27017/billing_hub_mediation_db"
+        TEST_MONGODB_RADIUS_URI="mongodb://10.6.0.2:27017/billing_hub_radius_db"
+
+        CRED_UMS_DB= credentials('db-adennet-billinghub')
+        TEST_DATASOURCE_URL="jdbc:postgresql://10.6.0.4:7432/billinghub_usage_management_db"
+        TEST_DATASOURCE_USERNAME="$CRED_UMS_DB_USR"
+        TEST_DATASOURCE_PASSWORD="$CRED_UMS_DB_PSW"
+
+    }
+
+    stages {
+        stage("Push image from Sarath's registry to Adennet registry") {
+            steps {
+                script {
+                    echo "Login to Sarathi's registry"
+                    sh "docker login http://192.168.1.119:8082 -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}"
+
+                    echo "Pulling image from Sarathi's registry"
+                    sh "docker pull ${IMAGE_TAG}"
+                }
+            }
+        }
+        stage("Push image to Adennet's docker registry") {
+            steps {
+                script {
+                    echo "Re-tagging image ${IMAGE_TAG} to ${RE_TAG}"
+                    sh "docker tag ${IMAGE_TAG} ${RE_TAG} "
+
+                    echo "Login to Adennet's registry"
+                    sh "docker login ${DOCKER_REG_HOST} -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}"
+
+                    echo "Pushing image ${RE_TAG} to Adennet's Docker registry "
+                    sh "docker push ${RE_TAG}"
+                }
+            }
+        }
+        stage('Deploy to 10.6.0.1') {
+            when {
+                expression { params.DEPLOY_TO_SERVER_1 }
+            }
+
+            steps {
+                script {
+                    def remote = [:]
+                    remote.name = "server-10.6.0.1"
+                    remote.host = "10.6.0.1"
+                    remote.allowAnyHosts = true
+
+                    withCredentials([usernamePassword(credentialsId: 'db-adennet-billinghub', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD'),
+                                    usernamePassword(credentialsId: 'ssh-adennet-server', usernameVariable: 'USERNAME_SSH', passwordVariable: 'PASSWORD_SSH')
+                                ]) {
+
+                        remote.user = USERNAME_SSH
+                        remote.password=PASSWORD_SSH
+
+                        echo "Login to Docker registry(${DOCKER_REG_HOST})"
+                        sshCommand remote: remote, command: "docker login ${DOCKER_REG_HOST}"
+
+                        echo "Pulling docker image ${RE_TAG}"
+                        sshCommand remote: remote, command: "docker pull ${RE_TAG}"
+
+                        echo "Stopping existing container"
+                        sshCommand remote: remote, command: "docker ps -f name=${CONTAINER_NAME} -q | xargs --no-run-if-empty docker stop"
+
+                        echo "Removing old container if any"
+                        sshCommand remote: remote, command: "docker ps -a -f name=${CONTAINER_NAME} -q | xargs --no-run-if-empty docker rm"
+
+                        echo "Starting docker container..."
+                        sshCommand remote: remote, command: "docker run -dt --restart=always --add-host=host.docker.internal:host-gateway --name ${CONTAINER_NAME} -e SPRING_AUTOCONFIGURE_EXCLUDE=${SPRING_AUTOCONFIGURE_EXCLUDE} -e TEST_MONGODB_MEDIATION_URI=${TEST_MONGODB_MEDIATION_URI} -e TEST_MONGODB_RADIUS_URI=${TEST_MONGODB_RADIUS_URI} -e TEST_DATASOURCE_URL=${TEST_DATASOURCE_URL} -e TEST_DATASOURCE_USERNAME=${TEST_DATASOURCE_USERNAME} -e TEST_DATASOURCE_PASSWORD=${TEST_DATASOURCE_PASSWORD} -p ${PORT_MAPPING} ${RE_TAG}"
+                    
+                        echo "Removing images older than 20 days"
+                        sh "docker images | grep '${REPO_CONTAINER_NAME}' | docker image prune -a --force --filter 'until=480h'"
+                    }
+                }
+            }
+        }
+        stage('Deploy to 10.6.0.2') {
+            when {
+                expression { params.DEPLOY_TO_SERVER_2 }
+            }
+
+            steps {
+                script {
+                    def remote = [:]
+                    remote.name = "server-10.6.0.2"
+                    remote.host = "10.6.0.2"
+                    remote.allowAnyHosts = true
+
+                    withCredentials([usernamePassword(credentialsId: 'db-adennet-billinghub', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD'),
+                                    usernamePassword(credentialsId: 'ssh-adennet-server', usernameVariable: 'USERNAME_SSH', passwordVariable: 'PASSWORD_SSH')
+                                ]) {
+
+                        remote.user = USERNAME_SSH
+                        remote.password=PASSWORD_SSH
+
+                        echo "Login to Docker registry(${DOCKER_REG_HOST})"
+                        sshCommand remote: remote, command: "docker login ${DOCKER_REG_HOST}"
+
+                        echo "Pulling docker image ${RE_TAG}"
+                        sshCommand remote: remote, command: "docker pull ${RE_TAG}"
+
+                        echo "Stopping existing container"
+                        sshCommand remote: remote, command: "docker ps -f name=${CONTAINER_NAME} -q | xargs --no-run-if-empty docker stop"
+
+                        echo "Removing old container if any"
+                        sshCommand remote: remote, command: "docker ps -a -f name=${CONTAINER_NAME} -q | xargs --no-run-if-empty docker rm"
+
+                        echo "Starting docker container..."
+                        sshCommand remote: remote, command: "docker run -dt --restart=always --add-host=host.docker.internal:host-gateway --name ${CONTAINER_NAME} -e SPRING_AUTOCONFIGURE_EXCLUDE=${SPRING_AUTOCONFIGURE_EXCLUDE} -e TEST_MONGODB_MEDIATION_URI=${TEST_MONGODB_MEDIATION_URI} -e TEST_MONGODB_RADIUS_URI=${TEST_MONGODB_RADIUS_URI} -e TEST_DATASOURCE_URL=${TEST_DATASOURCE_URL} -e TEST_DATASOURCE_USERNAME=${TEST_DATASOURCE_USERNAME} -e TEST_DATASOURCE_PASSWORD=${TEST_DATASOURCE_PASSWORD} -p ${PORT_MAPPING} ${RE_TAG}"
+                    
+                        echo "Removing images older than 20 days"
+                        sh "docker images | grep '${REPO_CONTAINER_NAME}' | docker image prune -a --force --filter 'until=480h'"
+                    }
+                }
+            }
+        }
+    }
+}
