@@ -1,0 +1,44 @@
+pipeline {
+    agent any
+
+    environment {
+        BRANCH_NAME = "${params.BRANCH_NAME}"
+        CRED_DOCKER_REG= credentials('docker-registry')
+        DOCKER_REG_USERNAME= "$CRED_DOCKER_REG_USR"
+        DOCKER_REG_PASSWORD= "$CRED_DOCKER_REG_PSW"
+    }
+    stages {
+        stage('Verify Branch Name') {
+            steps {
+                script {
+                    if (BRANCH_NAME.isEmpty()) {
+                        error('Branch name is a required parameter')
+                    }
+                }
+            }
+        }
+        stage('git-clone') {
+            steps {
+                // Get some code from a GitHub repository
+                git branch: "${BRANCH_NAME}", url: 'https://github.com/satyendra-soni/monitor-utility.git'
+            }
+        }
+        stage ('Build') {
+	        steps {
+		        sh './gradlew clean build -x test'
+	        }
+        }
+        stage ('Push docker image to docker registry') {
+            steps {
+                sh './gradlew dockerPushImage'
+
+            }
+        }
+        stage ('Prune images') {
+            steps {
+                echo 'Pruning all images without at least one container associated to them'
+                sh 'docker system prune -af --filter "until=6h"'
+            }
+        }
+    }
+}
