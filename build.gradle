@@ -19,6 +19,7 @@ plugins {
 }
 
 group = 'com.adennet'
+version = '0.0.1-SNAPSHOT'
 version = qualifyVersion(version, now)
 sourceCompatibility = '11'
 
