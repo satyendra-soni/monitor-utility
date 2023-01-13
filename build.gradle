@@ -19,7 +19,7 @@ plugins {
 }
 
 group = 'com.adennet'
-version = '0.0.1-SNAPSHOT'
+version = qualifyVersion(version, now)
 sourceCompatibility = '11'
 
 configurations {
@@ -50,6 +50,20 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+def qualifyVersion(version, now) {
+	if (version.toString().endsWith('SNAPSHOT')) {
+		def hashStdOut = new ByteArrayOutputStream()
+		exec {
+			commandLine "git", "rev-parse", "--short", "HEAD"
+			standardOutput = hashStdOut
+		}
+
+		return version.replace("BUILD", now + "-" + hashStdOut.toString().trim())
+	}
+
+	return version
 }
 
 docker {
