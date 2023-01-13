@@ -9,9 +9,8 @@ pipeline {
         IMAGE_TAG = "192.168.1.119:8082/monitor-utility:${params.IMAGE_TAG}"
         RE_TAG = "${REPO_CONTAINER_NAME}:${params.IMAGE_TAG}"
         
-        /*LOG_FOLDER= "logs"
-        LOG_FILENAME= "customer-portal"
-        MOUNT_LOG_LOCATION= "/home/jbilling/billinghub/logs/customer-portal:/app/${LOG_FOLDER}" */
+        LOG_FOLDER= "logs"
+        MOUNT_LOG_LOCATION= "/home/jbilling/billinghub/logs/monitor-utility:/app/${LOG_FOLDER}"
 
         DOCKER_REG_HOST= "http://10.6.0.2:8082"
         CRED_DOCKER_REG= credentials('docker-registry')
@@ -88,7 +87,7 @@ pipeline {
                         sshCommand remote: remote, command: "docker ps -a -f name=${CONTAINER_NAME} -q | xargs --no-run-if-empty docker rm"
 
                         echo "Starting docker container..."
-                        sshCommand remote: remote, command: "docker run -dt --restart=always --add-host=host.docker.internal:host-gateway --name ${CONTAINER_NAME} -e SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE} -e SPRING_AUTOCONFIGURE_EXCLUDE=${SPRING_AUTOCONFIGURE_EXCLUDE} -e TEST_MONGODB_MEDIATION_URI=${TEST_MONGODB_MEDIATION_URI} -e TEST_MONGODB_RADIUS_URI=${TEST_MONGODB_RADIUS_URI} -e TEST_DATASOURCE_URL=${TEST_DATASOURCE_URL} -e TEST_DATASOURCE_USERNAME=${TEST_DATASOURCE_USERNAME} -e TEST_DATASOURCE_PASSWORD=${TEST_DATASOURCE_PASSWORD} -p ${PORT_MAPPING} ${RE_TAG}"
+                        sshCommand remote: remote, command: "docker run -dt --restart=always --add-host=host.docker.internal:host-gateway --name ${CONTAINER_NAME} -e SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE} -e SPRING_AUTOCONFIGURE_EXCLUDE=${SPRING_AUTOCONFIGURE_EXCLUDE} -e TEST_MONGODB_MEDIATION_URI=${TEST_MONGODB_MEDIATION_URI} -e TEST_MONGODB_RADIUS_URI=${TEST_MONGODB_RADIUS_URI} -e TEST_DATASOURCE_URL=${TEST_DATASOURCE_URL} -e TEST_DATASOURCE_USERNAME=${TEST_DATASOURCE_USERNAME} -e TEST_DATASOURCE_PASSWORD=${TEST_DATASOURCE_PASSWORD} -v ${MOUNT_LOG_LOCATION} -p ${PORT_MAPPING} ${RE_TAG}"
                     
                         echo "Removing images older than 20 days"
                         sh "docker images | grep '${REPO_CONTAINER_NAME}' | docker image prune -a --force --filter 'until=480h'"
@@ -128,7 +127,7 @@ pipeline {
                         sshCommand remote: remote, command: "docker ps -a -f name=${CONTAINER_NAME} -q | xargs --no-run-if-empty docker rm"
 
                         echo "Starting docker container..."
-                        sshCommand remote: remote, command: "docker run -dt --restart=always --add-host=host.docker.internal:host-gateway --name ${CONTAINER_NAME} -e SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE} -e SPRING_AUTOCONFIGURE_EXCLUDE=${SPRING_AUTOCONFIGURE_EXCLUDE} -e TEST_MONGODB_MEDIATION_URI=${TEST_MONGODB_MEDIATION_URI} -e TEST_MONGODB_RADIUS_URI=${TEST_MONGODB_RADIUS_URI} -e TEST_DATASOURCE_URL=${TEST_DATASOURCE_URL} -e TEST_DATASOURCE_USERNAME=${TEST_DATASOURCE_USERNAME} -e TEST_DATASOURCE_PASSWORD=${TEST_DATASOURCE_PASSWORD} -p ${PORT_MAPPING} ${RE_TAG}"
+                        sshCommand remote: remote, command: "docker run -dt --restart=always --add-host=host.docker.internal:host-gateway --name ${CONTAINER_NAME} -e SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE} -e SPRING_AUTOCONFIGURE_EXCLUDE=${SPRING_AUTOCONFIGURE_EXCLUDE} -e TEST_MONGODB_MEDIATION_URI=${TEST_MONGODB_MEDIATION_URI} -e TEST_MONGODB_RADIUS_URI=${TEST_MONGODB_RADIUS_URI} -e TEST_DATASOURCE_URL=${TEST_DATASOURCE_URL} -e TEST_DATASOURCE_USERNAME=${TEST_DATASOURCE_USERNAME} -e TEST_DATASOURCE_PASSWORD=${TEST_DATASOURCE_PASSWORD} -v ${MOUNT_LOG_LOCATION} -p ${PORT_MAPPING} ${RE_TAG}"
                     
                         echo "Removing images older than 20 days"
                         sh "docker images | grep '${REPO_CONTAINER_NAME}' | docker image prune -a --force --filter 'until=480h'"
