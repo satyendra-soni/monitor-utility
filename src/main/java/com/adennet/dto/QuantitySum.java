@@ -5,6 +5,5 @@ import lombok.Data;
 @Data
 public class QuantitySum {
 
-	private String totalCumulativeDataUsage;
-	private String sum_quantity;
+	private double sumOfQuantity;
 }

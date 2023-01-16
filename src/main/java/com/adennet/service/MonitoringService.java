@@ -1,6 +1,7 @@
 package com.adennet.service;
 
 import com.adennet.dto.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +10,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -17,6 +19,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import static com.adennet.util.AppUtil.getDiskDetails;
+import static com.adennet.util.AppUtil.writeObjectToJsonFile;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 
 @Service
@@ -24,7 +27,8 @@ import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 @RequiredArgsConstructor
 public class MonitoringService {
 
-    private final MonitorHelperService  monitorHelperService;
+    private final MonitorHelperService monitorHelperService;
+    private final ObjectMapper mapper;
 
     @SneakyThrows
     public Map<String, String> diskDetails(String server, ServerDetail serverDetail) {
@@ -48,12 +52,11 @@ public class MonitoringService {
         );
         return monitorHelperService.getRadiusDbMongoClient().aggregate(agg, "radius_session", SessionCount.class).getUniqueMappedResult();
     }
+
     @Async()
     public void performDataMatching() {
         long start = System.currentTimeMillis();
         List<ConsumptionUsages> consumptionUsages = monitorHelperService.getConsumptionDataFromPostgres();
-        System.out.println("consumptionUsages = " + consumptionUsages);
-        System.out.println("consumptionUsages size = " + consumptionUsages.size());
 
         List<MatchResult> matchResultList = consumptionUsages.stream()
                 .map(usage -> {
@@ -70,9 +73,7 @@ public class MonitoringService {
                     }
                     if (cumulativeDataUsage != null && quantitySum != null) {
                         double usedQuantityInConsumptionUsagesMap = usage.getInitialQuantity() - usage.getAvailableQuantity();
-                        System.out.println("SubscriberNumber="+ usage.getSubscriberNumber()+" usedQuantityInConsumptionUsagesMap = " + usedQuantityInConsumptionUsagesMap+" sessionData="
-                                +cumulativeDataUsage.getSumOfCumulativeDataUsage()+"  bhmrData="+quantitySum.getSumOfQuantity());
-                        if (usedQuantityInConsumptionUsagesMap == cumulativeDataUsage.getSumOfCumulativeDataUsage() && usedQuantityInConsumptionUsagesMap == quantitySum.getSumOfQuantity()) {
+                        if (usedQuantityInConsumptionUsagesMap != cumulativeDataUsage.getSumOfCumulativeDataUsage() || usedQuantityInConsumptionUsagesMap != quantitySum.getSumOfQuantity()) {
                             return MatchResult.builder()
                                     .subscriberNumber(usage.getSubscriberNumber())
                                     .usedQuantityInConsumptionUsagesMap(usedQuantityInConsumptionUsagesMap)
@@ -85,9 +86,8 @@ public class MonitoringService {
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
-        System.out.println("matchResultList = " + matchResultList);
-        long totalTime = System.currentTimeMillis() - start;
-        System.out.println("System.currentTimeMillis() = " + totalTime);
+        writeObjectToJsonFile(mapper, matchResultList, System.getenv("HOME").concat("/monitor/" + LocalDateTime.now() + "monitor.json"));
+        log.info("Time taken to complete performDataMatching task={}, at={}", System.currentTimeMillis() - start, LocalDateTime.now());
     }
 
 }

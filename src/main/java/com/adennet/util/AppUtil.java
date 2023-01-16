@@ -1,5 +1,6 @@
 package com.adennet.util;
 
+import com.adennet.dto.MatchResult;
 import com.adennet.dto.ServerDetail;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -8,36 +9,39 @@ import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
+import org.springframework.util.FileCopyUtils;
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Map;
-import java.util.Properties;
+import java.time.Instant;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static com.adennet.util.Constant.FILESYSTEM;
 import static com.adennet.util.Constant.MOUNTED;
 
-@Slf4j
+//@Slf4j
 public class AppUtil {
-    public static JsonNode convertToJson(ObjectMapper mapper, String data) {
-        try {
-            return mapper.readValue(data, JsonNode.class);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Exception while converting to json");
-        }
-    }
 
+    public static Instant parseDate(String dateString){
+        return Instant.parse(dateString.replace(" ", "T").concat("Z"));
+    }
     @SneakyThrows
     public static Date parseDateTime(String dateString) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-        Date date = dateFormat.parse(dateString);
+        SimpleDateFormat dateFormat2 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SimpleDateFormat dateFormat3 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS");
+        Date date;
+        if (dateString.matches(".*\\.\\d{3}$")) {
+            date = dateFormat.parse(dateString);
+        } else if (dateString.matches(".*\\.\\d{6}$")) {
+            date = dateFormat3.parse(dateString);
+        } else {
+            date = dateFormat2.parse(dateString);
+        }
         return new Date(date.getTime());
     }
 
@@ -90,6 +94,20 @@ public class AppUtil {
         if (key.equals(MOUNTED) || key.equals(FILESYSTEM))
             return number;
         return number.replaceAll("\\D", "");
+    }
+
+    public static void writeObjectToJsonFile(ObjectMapper objectMapper,Object object, String fileName) {
+        if (Objects.isNull(object))
+            return;
+        try {
+            String jsonString = objectMapper.writeValueAsString(object);
+            File file = new File(fileName);
+            FileUtils.writeStringToFile(file, jsonString, StandardCharsets.UTF_8);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }
