@@ -4,14 +4,16 @@ import com.adennet.dto.ServerDetail;
 import com.adennet.dto.SessionCount;
 import com.adennet.service.MonitoringService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestController
-@RequestMapping(("/api"))
+@RequestMapping(("/monitor"))
 @RequiredArgsConstructor
 public class MonitoringController {
     private final MonitoringService monitoringService;
@@ -26,6 +28,7 @@ public class MonitoringController {
 
     @GetMapping("activeSession")
     public SessionCount activeSession(@RequestParam("isValid") boolean isValid) {
+        log.info("Retrieving active session from radius sessions.");
         return monitoringService.activeSession(isValid);
     }
 
