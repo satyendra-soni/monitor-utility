@@ -13,7 +13,7 @@ public class DbResponse {
 
 	private String _id;
 	private String sum_cumulativeDataUsage;
-	private String cumulativeDataUsage;
+	private String sum_cumulativeDataUsage;
 
 	private long count;
 
