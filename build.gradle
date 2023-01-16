@@ -1,11 +1,25 @@
+buildscript {
+	ext {
+		registeryHost = '192.168.1.119:8082'
+		javaImage = 'openjdk:11-jre'
+		now = new Date().getTime()
+
+		springBootVersion = '2.7.3'
+		springVersion = '5.3.22'
+		lombokVersion = '1.18.24'
+		bmuschkoDocker = '7.4.0'
+	}
+}
+
 plugins {
 	id 'java'
 	id 'org.springframework.boot' version '2.7.8-SNAPSHOT'
 	id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+	id 'com.bmuschko.docker-spring-boot-application' version "$bmuschkoDocker"
 }
 
 group = 'com.adennet'
-version = '0.0.1-SNAPSHOT'
+version = qualifyVersion('1.0.0.BUILD-SNAPSHOT', now)
 sourceCompatibility = '11'
 
 configurations {
@@ -38,4 +52,32 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+def qualifyVersion(version, now) {
+	if (version.toString().endsWith('SNAPSHOT')) {
+		def hashStdOut = new ByteArrayOutputStream()
+		exec {
+			commandLine "git", "rev-parse", "--short", "HEAD"
+			standardOutput = hashStdOut
+		}
+
+		return version.replace("BUILD", now + "-" + hashStdOut.toString().trim())
+	}
+
+	return version
+}
+
+docker {
+	registryCredentials {
+		url = "http://${registeryHost}"
+		username = "$System.env.DOCKER_REG_USERNAME"
+		password = "$System.env.DOCKER_REG_PASSWORD"
+	}
+
+	springBootApplication {
+		baseImage = "${javaImage}"
+		ports = [8080]
+		images = ["${registeryHost}/${rootProject.name}:${version}"]
+	}
 }
